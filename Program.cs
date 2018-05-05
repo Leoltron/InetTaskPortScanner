@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace InetTaskPortScanner
 {
-    internal enum PortStatus
+    public enum PortStatus
     {
         Closed,
         Open,
@@ -21,9 +21,9 @@ namespace InetTaskPortScanner
         Http
     }
 
-    internal static class Program
+    public static class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             string host;
             do
@@ -46,12 +46,12 @@ namespace InetTaskPortScanner
             } while (!ValidateUshortParse(out endPort) || !ValidatePorts(endPort, startPort));
 
             Console.WriteLine($"{"Port",-7} {"TCP",-10} {"UDP",-10}");
-            var Tasks = new List<Task>();
+            var tasks = new List<Task>();
 
             for (var port = startPort; port <= endPort; port++)
-                Tasks.Add(PrintPortStatus(host, port, 250));
+                tasks.Add(PrintPortStatus(host, port, 250));
 
-            Task.WaitAll(Tasks.ToArray());
+            Task.WaitAll(tasks.ToArray());
         }
 
         private static bool ValidatePorts(ushort endPort, ushort startPort)
@@ -78,7 +78,7 @@ namespace InetTaskPortScanner
             return isValid;
         }
 
-        public static async Task PrintPortStatus(string ip, int port, int timeoutMilliseconds)
+        private static async Task PrintPortStatus(string ip, int port, int timeoutMilliseconds)
         {
             var tcpTask = Task.Run(() => TestTcpPort(ip, port, timeoutMilliseconds));
             var udpTask = Task.Run(() => TestUdpPort(ip, port, timeoutMilliseconds));
@@ -87,7 +87,7 @@ namespace InetTaskPortScanner
             Console.WriteLine($"{port,-7} {tcpTask.Result,-10} {udpTask.Result,-10}");
         }
 
-        public static PortStatus TestUdpPort(string ip, int port, int timeoutMilliseconds)
+        private static PortStatus TestUdpPort(string ip, int port, int timeoutMilliseconds)
         {
             var isOpen = TestUdpPortIsOpen(ip, port, timeoutMilliseconds);
             if (!isOpen)
@@ -102,7 +102,7 @@ namespace InetTaskPortScanner
             return PortStatus.Open;
         }
 
-        public static PortStatus TestTcpPort(string ip, int port, int timeoutMilliseconds)
+        private static PortStatus TestTcpPort(string ip, int port, int timeoutMilliseconds)
         {
             var isOpen = TestTcpPortIsOpen(ip, port);
             if (!isOpen)
@@ -123,7 +123,7 @@ namespace InetTaskPortScanner
             return PortStatus.Open;
         }
 
-        public static bool TestTcpPortIsOpen(string ip, int port)
+        private static bool TestTcpPortIsOpen(string ip, int port)
         {
             using (var c = new TcpClient())
                 try
@@ -138,7 +138,7 @@ namespace InetTaskPortScanner
             return true;
         }
 
-        public static bool TestUdpPortIsOpen(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestUdpPortIsOpen(string ip, int port, int timeoutMillis = 1000)
         {
             using (var c = new UdpClient(ip, port))
             {
@@ -166,7 +166,7 @@ namespace InetTaskPortScanner
             }
         }
 
-        public static bool TestTcpForHttp(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestTcpForHttp(string ip, int port, int timeoutMillis = 1000)
         {
             using (var c = new TcpClient())
                 try
@@ -188,7 +188,7 @@ namespace InetTaskPortScanner
                 }
         }
 
-        public static readonly byte[] DnsSimpleMessage =
+        private static readonly byte[] DnsSimpleMessage =
         {
             0x15, 0xfa, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x06, 0x67, 0x6f, 0x6f,
@@ -196,7 +196,7 @@ namespace InetTaskPortScanner
             0x00, 0x01, 0x00, 0x01
         };
 
-        public static bool TestUdpForDns(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestUdpForDns(string ip, int port, int timeoutMillis = 1000)
         {
             using (var c = new UdpClient(ip, port))
             {
@@ -227,7 +227,7 @@ namespace InetTaskPortScanner
             }
         }
 
-        public static bool TestTcpForDns(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestTcpForDns(string ip, int port, int timeoutMillis = 1000)
         {
             using (var tcpClient = new TcpClient())
                 try
@@ -271,7 +271,7 @@ namespace InetTaskPortScanner
                 }
         }
 
-        public static bool TestTcpForSmtp(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestTcpForSmtp(string ip, int port, int timeoutMillis = 1000)
         {
             try
             {
@@ -284,7 +284,7 @@ namespace InetTaskPortScanner
             }
         }
 
-        public static bool TestTcpForPop(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestTcpForPop(string ip, int port, int timeoutMillis = 1000)
         {
             try
             {
@@ -345,7 +345,7 @@ namespace InetTaskPortScanner
             0xde, 0x8e, 0x91, 0x1b, 0x5b, 0x79, 0x65, 0x46 //40 Transmit TS
         };
 
-        public static bool TestUdpForSntp(string ip, int port, int timeoutMillis = 1000)
+        private static bool TestUdpForSntp(string ip, int port, int timeoutMillis = 1000)
         {
             using (var c = new UdpClient(ip, port))
             {
