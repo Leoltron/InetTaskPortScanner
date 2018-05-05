@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
@@ -23,7 +24,7 @@ namespace InetTaskPortScanner
 
     public static class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
         {
             string host;
             do
@@ -31,6 +32,19 @@ namespace InetTaskPortScanner
                 Console.Write("Host: ");
                 host = Console.ReadLine();
             } while (!ValidateHost(host));
+
+            var pingResult = TryValidateConnectionByPing(host);
+            if (pingResult == null)
+                return;
+
+            Console.WriteLine($"Ping result: success, {pingResult.RoundtripTime}ms");
+            var timeout = Math.Max(100, (int) (pingResult.RoundtripTime) * 2);
+
+            if (pingResult.Status != IPStatus.Success)
+            {
+                Console.WriteLine("Invalid ping result: " + pingResult.Status);
+                return;
+            }
 
             ushort startPort;
             do
@@ -49,15 +63,36 @@ namespace InetTaskPortScanner
             var tasks = new List<Task>();
 
             for (var port = startPort; port <= endPort; port++)
-                tasks.Add(PrintPortStatus(host, port, 250));
+                tasks.Add(PrintPortStatus(host, port, timeout));
 
             Task.WaitAll(tasks.ToArray());
+        }
+
+        private static PingReply TryValidateConnectionByPing(string host)
+        {
+            try
+            {
+                return new Ping().Send(host);
+            }
+            catch (PingException pingException)
+            {
+                Exception e = pingException;
+                var messages = new List<string>();
+                while (e != null)
+                {
+                    messages.Add(e.Message);
+                    e = e.InnerException;
+                }
+
+                Console.WriteLine(string.Join(": ", messages));
+                return null;
+            }
         }
 
         private static bool ValidatePorts(ushort endPort, ushort startPort)
         {
             var isValid = startPort <= endPort;
-            if(!isValid)
+            if (!isValid)
                 Console.WriteLine("End port must be more or equal than start port!");
             return isValid;
         }
@@ -65,7 +100,7 @@ namespace InetTaskPortScanner
         private static bool ValidateUshortParse(out ushort startPort)
         {
             var success = ushort.TryParse(Console.ReadLine(), out startPort);
-            if(!success)
+            if (!success)
                 Console.WriteLine("Invalid port.");
             return success;
         }
@@ -73,7 +108,7 @@ namespace InetTaskPortScanner
         private static bool ValidateHost(string host)
         {
             var isValid = Uri.CheckHostName(host) != UriHostNameType.Unknown;
-            if(!isValid)
+            if (!isValid)
                 Console.WriteLine("Invalid host.");
             return isValid;
         }
@@ -130,7 +165,7 @@ namespace InetTaskPortScanner
                 {
                     c.Connect(ip, port);
                 }
-                catch (SocketException)
+                catch (Exception)
                 {
                     return false;
                 }
@@ -182,7 +217,7 @@ namespace InetTaskPortScanner
                     var readBytes = stream.Read(buf, 0, buf.Length);
                     return readBytes == 4 && buf.SequenceEqual(new byte[] {0x48, 0x54, 0x54, 0x50});
                 }
-                catch (SocketException)
+                catch (Exception)
                 {
                     return false;
                 }
@@ -278,7 +313,7 @@ namespace InetTaskPortScanner
                 var split = ConnectAndReadSslTcp(ip, port, timeoutMillis).Split().Where(s => s.Length > 0).ToList();
                 return split.Count >= 3 && (split[2] == "SMTP" || split[2] == "ESMTP");
             }
-            catch (SocketException)
+            catch (Exception)
             {
                 return false;
             }
@@ -292,7 +327,7 @@ namespace InetTaskPortScanner
                 return split.Count > 0 && split[0] == "+OK" &&
                        (split.Count < 2 || split[1].ToLowerInvariant().Contains("pop"));
             }
-            catch (SocketException)
+            catch (Exception)
             {
                 return false;
             }
